@@ -21,14 +21,26 @@ if (!("serial" in navigator)) {
   $("connect").disabled = true;
 }
 
+const CHIPS = { esp32c3: "ESP32-C3", esp8266: "ESP8266" };
+
 function selectedFw() {
   return document.querySelector('input[name="fw"]:checked').value;
+}
+
+function selectedHw() {
+  return document.querySelector('input[name="hw"]:checked').value;
+}
+
+function showHw() {
+  const hw = selectedHw();
+  document.querySelectorAll("[data-hw]").forEach((el) => { el.hidden = el.dataset.hw !== hw; });
+  showMeta();
 }
 
 function showMeta() {
   const meta = $("fw-meta");
   if (!manifest) return;
-  const m = manifest[selectedFw()];
+  const m = manifest[selectedHw()]?.[selectedFw()];
   meta.textContent = m
     ? `${m.file} · ${(m.size / 1024).toFixed(0)} KB · sha256 ${m.sha256.slice(0, 16)}…`
     : "firmware not found";
@@ -46,6 +58,7 @@ async function loadManifest() {
 }
 
 document.querySelectorAll('input[name="fw"]').forEach((el) => el.addEventListener("change", showMeta));
+document.querySelectorAll('input[name="hw"]').forEach((el) => el.addEventListener("change", showHw));
 
 async function disconnect() {
   // A failed connect can leave the serial reader locked so disconnect() never settles; don't wait forever.
@@ -67,10 +80,13 @@ $("connect").addEventListener("click", async () => {
   try {
     const port = await navigator.serial.requestPort();
     const baud = parseInt($("baud").value, 10);
+    const hw = selectedHw();
     transport = new Transport(port, true);
-    // romBaudrate == baudrate skips the port reopen after sync, which would reset this board
-    // out of the bootloader (it has no auto-reset circuit to hold IO9 low).
-    loader = new ESPLoader({ transport, baudrate: baud, romBaudrate: baud, terminal });
+    // ESP32-C3: romBaudrate == baudrate skips the port reopen after sync, which would reset this
+    // board out of the bootloader (no auto-reset circuit to hold IO9 low).
+    // ESP8266: sync at 115200 and let esptool-js switch up after the stub loads; it falls back to
+    // 115200 by itself if the switch fails.
+    loader = new ESPLoader({ transport, baudrate: baud, romBaudrate: hw === "esp8266" ? 115200 : baud, terminal });
     terminal.clean();
     log("Connecting…");
     await loader.main("default_reset");
@@ -78,8 +94,10 @@ $("connect").addEventListener("click", async () => {
     const chipName = loader.chip.CHIP_NAME;
     let mac = "";
     try { mac = await loader.chip.readMac(loader); } catch (e) { /* cosmetic */ }
-    if (chipName !== "ESP32-C3") {
-      log(`Wrong chip: found ${chipName}, this firmware is for ESP32-C3. Not flashing.`);
+    // Flashing an image built for the other chip family would brick-loop the board until reflashed.
+    // CHIP_NAME is "ESP8266" for ESP8285 too (same ROM, embedded flash).
+    if (chipName !== CHIPS[hw]) {
+      log(`Wrong chip: found ${chipName}, but you selected ${CHIPS[hw]}. Not flashing — pick the matching hardware in step 1.`);
       await disconnect();
       return;
     }
@@ -89,7 +107,9 @@ $("connect").addEventListener("click", async () => {
     $("connect").textContent = "Disconnect";
   } catch (e) {
     log(`Connect failed: ${e.message || e}`);
-    log("Is the board in bootloader mode (hold BOOT, tap RST, release BOOT)?");
+    log(selectedHw() === "esp8266"
+      ? "Is the board in bootloader mode (hold FLASH/GPIO0, tap RST, release)?"
+      : "Is the board in bootloader mode (hold BOOT, tap RST, release BOOT)?");
     $("monitor-hint").hidden = false;
     await disconnect();
   } finally {
@@ -100,7 +120,10 @@ $("connect").addEventListener("click", async () => {
 $("flash").addEventListener("click", async () => {
   if (!loader || !manifest) return;
   const fw = selectedFw();
-  const entry = manifest[fw];
+  const hw = loader.chip.CHIP_NAME === CHIPS.esp8266 ? "esp8266" : "esp32c3";
+  if (hw !== selectedHw()) { log("Hardware selection changed after connecting. Disconnect and reconnect."); return; }
+  const entry = manifest[hw]?.[fw];
+  if (!entry) { log(`No ${hw} ${fw} image in manifest.`); return; }
   const status = $("fw-status");
   const progress = $("progress");
   $("flash").disabled = true;
@@ -113,13 +136,15 @@ $("flash").addEventListener("click", async () => {
     const data = new Uint8Array(await r.arrayBuffer());
     if (data.length !== entry.size) throw new Error(`size mismatch: got ${data.length}, expected ${entry.size}`);
 
-    log(`Flashing ${fw} (${data.length} bytes)…`);
+    log(`Flashing ${CHIPS[hw]} ${fw} (${data.length} bytes)…`);
     status.textContent = "flashing…";
     progress.hidden = false;
     progress.value = 0;
     await loader.writeFlash({
-      fileArray: [{ data, address: 0x0 }],
-      flashMode: "keep",
+      fileArray: [{ data, address: entry.offset }],
+      // Image headers are rewritten only at the bootloader offset (0x0), so this applies to the
+      // esp8266 image. DOUT works on every ESP8266/ESP8285 module; QIO/DIO headers hang 1 MB parts.
+      flashMode: entry.flashMode || "keep",
       flashFreq: "keep",
       flashSize: "keep",
       eraseAll: false,

@@ -107,7 +107,7 @@
     <span></span>
   </div>
 
-  <p class="lede">Flash the <b>beacon</b> or the <b>receiver</b> firmware onto an <b>ESP32-C3 + LR1121</b> board, in
+  <p class="lede">Flash the <b>beacon</b> or the <b>receiver</b> firmware onto an <b>ESP32-C3 + LR1121</b> or <b>ESP8266 + SX1276</b> board, in
     your browser — no computer tools. Needs Chrome or Edge over <code>https</code> (or <code>http://localhost</code>).</p>
 
   <p id="unsupported" class="warn" style="display:none">
@@ -115,7 +115,20 @@
      (or <code>http://localhost</code>).</p>
 
   <section class="step">
-    <div class="step-head"><span class="badge">1</span><h2>Pick the firmware</h2></div>
+    <div class="step-head"><span class="badge">1</span><h2>Pick your hardware</h2></div>
+    <div class="choices">
+      <label class="choice"><input type="radio" name="hw" value="esp32c3" checked/><b>ESP32-C3 + LR1121</b>
+        <small>SPI SCK 6, MISO 5, MOSI 4, CS 7 · radio RST 2, BUSY 3, DIO9 1 · NeoPixel 8.</small></label>
+      <label class="choice"><input type="radio" name="hw" value="esp8266"/><b>ESP8266 + SX1276</b>
+        <small>SPI SCK 14, MISO 12, MOSI 13, CS 15 · RST 2, DIO0 4, DIO1 5 · LED 16. 3.3&nbsp;V only.</small></label>
+    </div>
+    <p class="meta">Full wiring is in the
+      <a href="https://github.com/akceptor/esp-beacon#readme" target="_blank" rel="noopener">README</a>.
+      Both kinds of beacon are heard by both kinds of receiver.</p>
+  </section>
+
+  <section class="step">
+    <div class="step-head"><span class="badge">2</span><h2>Pick the firmware</h2></div>
     <div class="choices">
       <label class="choice"><input type="radio" name="fw" value="beacon" checked/><b>Beacon</b>
         <small>Transmits a 9-byte packet (chip ID + TX power) 2×/sec on 868&nbsp;MHz.</small></label>
@@ -126,13 +139,23 @@
   </section>
 
   <section class="step">
-    <div class="step-head"><span class="badge">2</span><h2>Put the board in bootloader mode</h2></div>
-    <p class="step-desc">This board has no auto-reset, so do this <b>before</b> clicking Connect:</p>
-    <ol class="steps">
-      <li>Hold the <b>BOOT</b> button.</li>
-      <li>Tap <b>RST</b> (or replug USB) while still holding BOOT.</li>
-      <li>Release BOOT, then click Connect and pick the board’s serial port.</li>
-    </ol>
+    <div class="step-head"><span class="badge">3</span><h2>Put the board in bootloader mode</h2></div>
+    <div data-hw="esp32c3">
+      <p class="step-desc">This board has no auto-reset, so do this <b>before</b> clicking Connect:</p>
+      <ol class="steps">
+        <li>Hold the <b>BOOT</b> button.</li>
+        <li>Tap <b>RST</b> (or replug USB) while still holding BOOT.</li>
+        <li>Release BOOT, then click Connect and pick the board’s serial port.</li>
+      </ol>
+    </div>
+    <div data-hw="esp8266" hidden>
+      <p class="step-desc">This module has no working auto-reset, so do this <b>before</b> clicking Connect:</p>
+      <ol class="steps">
+        <li>Hold the <b>FLASH</b> (GPIO0) button.</li>
+        <li>Tap <b>RST</b> (or replug USB) while still holding FLASH.</li>
+        <li>Release FLASH, then click Connect and pick the board’s serial port.</li>
+      </ol>
+    </div>
     <div class="field">
       <label class="lbl" for="baud">Baud</label>
       <select id="baud">
@@ -153,15 +176,15 @@
 
   <div id="controls" style="display:none">
     <section class="step">
-      <div class="step-head"><span class="badge">3</span><h2>Flash</h2></div>
-      <p class="step-desc">Writes the selected image to the chip (bootloader, partition table and app in one go).</p>
+      <div class="step-head"><span class="badge">4</span><h2>Flash</h2></div>
+      <p class="step-desc">Writes the selected image to the chip in one go. The detected chip must match the hardware picked in step 1.</p>
       <div class="getrow">
         <button id="flash" class="btn-primary btn-lg">Flash</button>
         <progress id="progress" max="100" value="0" hidden></progress>
         <span id="fw-status" class="status">ready</span>
       </div>
       <div class="info">
-        After flashing, <b>tap RST</b> (or replug USB) to run the new firmware — this board does not restart by
+        After flashing, <b>tap RST</b> (or replug USB) to run the new firmware — the board may not restart by
         itself. Open a serial monitor at 115200 baud to see the boot banner.
       </div>
     </section>
@@ -211,6 +234,6 @@
       });
     })();
   </script>
-  <script type="module" src="flasher.js?v=3"></script>
+  <script type="module" src="flasher.js?v=4"></script>
 </body>
 </html>

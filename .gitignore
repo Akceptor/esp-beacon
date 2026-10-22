@@ -6,3 +6,4 @@ src/idf_component.yml
 # Overrides the global ignore for *.html / *.json: the web flasher needs these.
 !flasher/index.html
 !flasher/firmware/manifest.json
+.worktrees/
