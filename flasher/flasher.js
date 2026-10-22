@@ -60,6 +60,7 @@ async function disconnect() {
 $("connect").addEventListener("click", async () => {
   if (transport) { await disconnect(); return; }
   setBusy(true);
+  $("monitor-hint").hidden = true;
   try {
     const port = await navigator.serial.requestPort();
     const baud = parseInt($("baud").value, 10);
@@ -87,6 +88,7 @@ $("connect").addEventListener("click", async () => {
     log(`Connect failed: ${e.message || e}`);
     log("Is the board in bootloader mode (hold BOOT, tap RST, release BOOT)?");
     await disconnect();
+    $("monitor-hint").hidden = false;
   } finally {
     setBusy(false);
   }
