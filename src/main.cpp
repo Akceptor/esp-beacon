@@ -1,33 +1,26 @@
-// ESP32-C3 + LR1121 beacon — indoor lab use.
+// ESP32-C3 + LR1121 (or ESP8266 + SX1276) beacon — indoor lab use.
 // Every 500 ms it transmits a 9-byte packet carrying its chip ID (the ESP32's
 // Wi-Fi base MAC) and its TX power, so a remote receiver can distinguish beacons and
 // later estimate distance. See docs/RECEIVER.md.
 #include <Arduino.h>
 #include <SPI.h>
-#include <esp_mac.h>
 #include <RadioLib.h>
 #include "board.h"
 
 static constexpr uint16_t PERIOD_MS = 500;   // 2 Hz
 
-LR1121 radio = new Module(PIN_CS, PIN_DIO9, PIN_RST, PIN_BUSY);
+RadioChip radio = newRadioModule();
 
 static uint8_t chipId[6] = {0, 0, 0, 0, 0, 0};
 static bool    radioReady = false;
 static uint32_t nextTx = 0;
 static uint32_t txCount = 0;
 
-static void readChipId() {
-  esp_read_mac(chipId, ESP_MAC_WIFI_STA);
-}
-
 static void initRadio() {
-  int16_t err = radio.begin(BAND_FREQ_MHZ, BW_KHZ, SF, CR, SYNC_WORD, TX_POWER_DBM, PREAMBLE_LEN, TCXO_VOLTAGE);
+  int16_t err = radioBegin(radio);
   if (err == RADIOLIB_ERR_NONE) {
-    radio.setRfSwitchTable(RF_SWITCH_PINS, RF_SWITCH_TABLE);
-    // This board's sub-GHz path is wired for the HP PA; begin() picks the LP PA at 13 dBm,
-    // which comes out ~8 dB weaker, so force HP.
-    int16_t pwr = radio.setOutputPower(TX_POWER_DBM, true);
+    radioApplyBoard(radio);
+    int16_t pwr = radioSetTxPower(radio);
     if (pwr != RADIOLIB_ERR_NONE) {
       Serial.print(F("WARN: setOutputPower failed, code "));
       Serial.println(pwr);
@@ -42,10 +35,10 @@ static void initRadio() {
 void setup() {
   Serial.begin(115200);
   delay(300);
-  neopixelWrite(LED_PIN, 0, 0, 0);
+  ledInit();
 
-  SPI.begin(PIN_SCK, PIN_MISO, PIN_MOSI, PIN_CS);
-  readChipId();
+  spiBegin();
+  readChipId(chipId);
 
   // Boot banner: chip id + key radio params.
   Serial.print(F("Beacon chipId "));
@@ -88,9 +81,9 @@ void loop() {
   for (int i = 0; i < 6; i++) pkt[2 + i] = chipId[i];
   pkt[8] = (uint8_t)TX_POWER_DBM;
 
-  neopixelWrite(LED_PIN, 0, 16, 0);
+  ledTx();
   int16_t r = radio.transmit(pkt, PKT_LEN);   // blocking; RADIOLIB_ERR_NONE on success
-  neopixelWrite(LED_PIN, 0, 0, 0);
+  ledOff();
   txCount++;
 
   // ~1 Hz heartbeat so a headless serial read proves liveness + radio health.

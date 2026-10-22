@@ -1,4 +1,4 @@
-// ESP32-C3 + LR1121 beacon receiver — flash to a second board to check the beacon is
+// ESP32-C3 + LR1121 (or ESP8266 + SX1276) beacon receiver — flash to a second board to check the beacon is
 // audible. Prints one CSV line per valid packet: chipId,rssi_dBm,snr_dB,txPower_dBm.
 // See docs/RECEIVER.md.
 #include <Arduino.h>
@@ -6,7 +6,7 @@
 #include <RadioLib.h>
 #include "board.h"
 
-LR1121 radio = new Module(PIN_CS, PIN_DIO9, PIN_RST, PIN_BUSY);
+RadioChip radio = newRadioModule();
 
 static volatile bool rxFlag = false;
 static bool     radioReady = false;
@@ -19,13 +19,13 @@ static void IRAM_ATTR onPacket() {
 }
 
 static bool initRadio() {
-  int16_t err = radio.begin(BAND_FREQ_MHZ, BW_KHZ, SF, CR, SYNC_WORD, TX_POWER_DBM, PREAMBLE_LEN, TCXO_VOLTAGE);
+  int16_t err = radioBegin(radio);
   if (err != RADIOLIB_ERR_NONE) {
     Serial.print(F("WARN: radio.begin failed, code "));
     Serial.println(err);
     return false;
   }
-  radio.setRfSwitchTable(RF_SWITCH_PINS, RF_SWITCH_TABLE);
+  radioApplyBoard(radio);
   radio.setPacketReceivedAction(onPacket);
   err = radio.startReceive();
   if (err != RADIOLIB_ERR_NONE) {
@@ -46,8 +46,8 @@ static void printHex(const uint8_t* p, size_t n) {
 void setup() {
   Serial.begin(115200);
   delay(300);
-  neopixelWrite(LED_PIN, 0, 0, 0);
-  SPI.begin(PIN_SCK, PIN_MISO, PIN_MOSI, PIN_CS);
+  ledInit();
+  spiBegin();
 
   Serial.print(F("Receiver @ ")); Serial.print(BAND_FREQ_MHZ, 1);
   Serial.print(F(" MHz SF")); Serial.println(SF);
@@ -74,12 +74,12 @@ void loop() {
 
     if (err == RADIOLIB_ERR_NONE && len == PKT_LEN && buf[0] == MAGIC[0] && buf[1] == MAGIC[1]) {
       okCount++;
-      neopixelWrite(LED_PIN, 0, 0, 16);
+      ledRx();
       printHex(buf + 2, 6);
       Serial.print(',');  Serial.print(rssi, 1);
       Serial.print(',');  Serial.print(snr, 1);
       Serial.print(',');  Serial.println((int8_t)buf[8]);
-      neopixelWrite(LED_PIN, 0, 0, 0);
+      ledOff();
     } else {
       badCount++;
       Serial.print(F("# rejected: err ")); Serial.print(err);

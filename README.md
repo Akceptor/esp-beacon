@@ -44,9 +44,12 @@ ExpressLRS leaves its own firmware on the LR1121, which stock RadioLib rejects.
 
 ## Web flasher
 
-**https://akceptor.github.io/esp-beacon/** — pick Beacon or Receiver and flash an ESP32-C3
-from Chrome/Edge, no tools needed. Put the board in bootloader mode first (hold BOOT, tap
-RST, release BOOT), click Connect, then Flash, then tap RST to run it.
+**https://akceptor.github.io/esp-beacon/** — pick your hardware (ESP32-C3 + LR1121 or
+ESP8266 + SX1276), then Beacon or Receiver, and flash from Chrome/Edge, no tools needed.
+The page checks that the detected chip matches the selected hardware and refuses to flash
+otherwise. ESP32-C3: put the board in bootloader mode first (hold BOOT, tap RST, release
+BOOT). ESP8266/ESP8285: hold FLASH (GPIO0), tap RST, release (the reference module has no
+working auto-reset). Then click Connect, Flash, and tap RST to run it.
 
 The page lives in `flasher/` and is deployed by `.github/workflows/pages.yml`. The images
 under `flasher/firmware/` are generated: after changing anything in `src/` or `include/`, run
@@ -55,7 +58,7 @@ under `flasher/firmware/` are generated: after changing anything in `src/` or `i
 flasher/build.sh
 ```
 
-and commit the updated `.bin` files and `manifest.json`. To try the page locally:
+(it builds all four envs) and commit the updated `.bin` files and `manifest.json`. To try the page locally:
 `cd flasher && python3 -m http.server`, then open http://localhost:8000.
 
 ## Build / flash
@@ -91,6 +94,41 @@ pio device monitor -e receiver
 
 The NeoPixel blinks blue per valid packet. Use it to confirm a beacon is audible; the
 full contract for a real receiver is in `docs/RECEIVER.md`.
+
+## ESP8266 + SX1276 variant
+
+A generic ESP8285 (1 MB flash, DOUT mode; the ESP8266 core family) LoRa module with an
+SX1276 (the **868 MHz** variant, 3.3 V supply only) runs the same beacon and receiver. Modulation, sync word and packet format match the
+LR1121 build, so either kind of beacon is heard by either kind of receiver. The chip ID is
+the chip's station MAC.
+
+| Signal | GPIO |
+|--------|------|
+| SPI SCK  | 14 |
+| SPI MISO | 12 |
+| SPI MOSI | 13 |
+| SPI CS (NSS) | 15 |
+| RST      | 2 |
+| DIO0/IRQ | 4 |
+| DIO1     | 5 |
+| Button   | 0 (unused) |
+| LED      | 16 (plain LED, active low) |
+
+GPIO0/2/15 are boot-strap pins. The antenna is wired to the SX1276 RFO pin (not
+PA_BOOST), so the firmware forces RFO output; 13 dBm is in RFO's range.
+
+Build with `pio run -e beacon_8266` (or `receiver_8266`). Don't use `-t upload`: PlatformIO's
+bundled esptool 3.0 fails to sync with this chip. Put the board in the bootloader by hand
+(hold FLASH/GPIO0, tap RST, release) — this module has no working auto-reset — then flash
+with esptool 4.x:
+
+```
+esptool --chip esp8266 --port <port> --before no_reset --after hard_reset \
+  write_flash --flash_mode dout --flash_size detect 0x0 .pio/build/beacon_8266/firmware.bin
+```
+
+Then tap RST; the serial monitor shows `beat N` about once a second. The web flasher also
+flashes this variant (select ESP8266 + SX1276), with the same manual bootloader entry.
 
 ## Power / battery
 
