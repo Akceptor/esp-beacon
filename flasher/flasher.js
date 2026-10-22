@@ -48,7 +48,10 @@ async function loadManifest() {
 document.querySelectorAll('input[name="fw"]').forEach((el) => el.addEventListener("change", showMeta));
 
 async function disconnect() {
-  try { if (transport) await transport.disconnect(); } catch (e) { /* already closed */ }
+  // A failed connect can leave the serial reader locked so disconnect() never settles; don't wait forever.
+  try {
+    if (transport) await Promise.race([transport.disconnect(), new Promise((r) => setTimeout(r, 2000))]);
+  } catch (e) { /* already closed */ }
   transport = null;
   loader = null;
   $("controls").style.display = "none";
@@ -87,8 +90,8 @@ $("connect").addEventListener("click", async () => {
   } catch (e) {
     log(`Connect failed: ${e.message || e}`);
     log("Is the board in bootloader mode (hold BOOT, tap RST, release BOOT)?");
-    await disconnect();
     $("monitor-hint").hidden = false;
+    await disconnect();
   } finally {
     setBusy(false);
   }
