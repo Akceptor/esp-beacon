@@ -1,0 +1,4 @@
+{
+  "beacon": {"file": "firmware/beacon.bin", "size": 390112, "sha256": "b39dfaceb9f35720094dd283ee88558fb1115cc8f31ffa083647c31de0377325"},
+  "receiver": {"file": "firmware/receiver.bin", "size": 389840, "sha256": "c49db62ddbed87fb13ca3c2c793916a5db832c6460ac857b5f8e26f16541e322"}
+}
