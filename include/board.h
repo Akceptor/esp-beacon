@@ -90,10 +90,9 @@ inline int16_t radioBegin(RadioChip& r) {
   return r.begin(BAND_FREQ_MHZ, BW_KHZ, SF, CR, SYNC_WORD, TX_POWER_DBM, PREAMBLE_LEN);
 }
 inline void radioApplyBoard(RadioChip&) {}
-// The vendor PA config has RegPaConfig bit7 (PA_BOOST) clear: the antenna is wired to RFO.
-// RadioLib picks PA_BOOST for any power >= 2 dBm by default, which would leave this board
-// nearly silent, so force RFO (valid range -4..15 dBm).
-inline int16_t radioSetTxPower(RadioChip& r) { return r.setOutputPower(TX_POWER_DBM, true); }
+// Antenna is on PA_BOOST. The vendor config's power bytes (RegPaConfig bit7 clear) suggest
+// RFO, but forcing RFO measured ~70 dB weaker, so don't "fix" this to forceRfo=true.
+inline int16_t radioSetTxPower(RadioChip& r) { return r.setOutputPower(TX_POWER_DBM, false); }
 
 inline void ledInit()  { pinMode(LED_PIN, OUTPUT); digitalWrite(LED_PIN, HIGH); }
 inline void ledOff()   { digitalWrite(LED_PIN, HIGH); }

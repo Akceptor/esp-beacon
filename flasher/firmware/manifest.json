@@ -1,10 +1,10 @@
 {
   "esp32c3": {
-    "beacon": {"file": "firmware/esp32c3-beacon.bin", "offset": 0, "flashMode": "keep", "size": 390112, "sha256": "92a4bd7eb50be631f9a385780a089082795a0bd8275e067528be83c9f2594a35"},
-    "receiver": {"file": "firmware/esp32c3-receiver.bin", "offset": 0, "flashMode": "keep", "size": 389840, "sha256": "e6b5b5c29264db5f1aafebc43db0725dd7fb6c6eed54470415c0caa53fe76fbe"}
+    "beacon": {"file": "firmware/esp32c3-beacon.bin", "offset": 0, "flashMode": "keep", "size": 390112, "sha256": "b11fed014113cf0833f356be8a9c638b6e7fbd0b7448c495cc4bdf90aaeba228"},
+    "receiver": {"file": "firmware/esp32c3-receiver.bin", "offset": 0, "flashMode": "keep", "size": 389840, "sha256": "3d1c5c5ba6bd42ccc21ba5222d0f74d450a9132351984ca6d14d1786cc56a11d"}
   },
   "esp8266": {
-    "beacon": {"file": "firmware/esp8266-beacon.bin", "offset": 0, "flashMode": "dout", "size": 297568, "sha256": "747dd115ebd22c42cdfc67a6a69ebb0011cb523ec60f95652dc4bbe8615e3f1d"},
+    "beacon": {"file": "firmware/esp8266-beacon.bin", "offset": 0, "flashMode": "dout", "size": 297568, "sha256": "33f1176b93e17e23d68a293f9cfd443dc4bbba8bf54ec4fd9ab009615991f278"},
     "receiver": {"file": "firmware/esp8266-receiver.bin", "offset": 0, "flashMode": "dout", "size": 297056, "sha256": "eb96be0f81913104fb28c2343a542ecef5cc2dfaeaca7e512d76e0047b0f0861"}
   }
 }

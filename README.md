@@ -114,8 +114,8 @@ the chip's station MAC.
 | Button   | 0 (unused) |
 | LED      | 16 (plain LED, active low) |
 
-GPIO0/2/15 are boot-strap pins. The antenna is wired to the SX1276 RFO pin (not
-PA_BOOST), so the firmware forces RFO output; 13 dBm is in RFO's range.
+GPIO0/2/15 are boot-strap pins. The antenna is wired to the SX1276 PA_BOOST pin (RadioLib's
+default at 13 dBm). Forcing RFO instead was measured ~70 dB weaker (-90 vs -20 dBm RSSI).
 
 Build with `pio run -e beacon_8266` (or `receiver_8266`). Don't use `-t upload`: PlatformIO's
 bundled esptool 3.0 fails to sync with this chip. Put the board in the bootloader by hand
