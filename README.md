@@ -77,6 +77,13 @@ radio params, then `beat N` about once a second. The NeoPixel blinks green per t
 `src/receiver.cpp` listens with the same radio config and prints one CSV line per valid
 packet (`chipId,rssi_dBm,snr_dB,txPower_dBm`), plus a `# listening` status every 10 s.
 
+| Field | Meaning |
+|-------|---------|
+| `chipId` | Beacon's Wi-Fi MAC, unique per beacon |
+| `rssi_dBm` | Received signal strength; closer to 0 is stronger (≈ −30 very close, ≈ −120 limit). Noisy: average several |
+| `snr_dB` | Signal above noise; SF12 decodes down to ≈ −20 |
+| `txPower_dBm` | Power the beacon says it used (13), read from the packet |
+
 ```
 pio run -e receiver -t upload --upload-port <port-of-second-board>
 pio device monitor -e receiver

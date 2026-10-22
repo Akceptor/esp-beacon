@@ -92,6 +92,10 @@
   progress { width:100%; height:10px; accent-color:var(--accent); }
   ol.steps { margin:.2rem 0 .6rem 1.2rem; padding:0; color:var(--ink); font-size:.92rem; }
   ol.steps li { margin:.15rem 0; }
+  table.fields { border-collapse:collapse; width:100%; font-size:.88rem; margin:.4rem 0; }
+  table.fields th, table.fields td { text-align:left; padding:6px 8px; border-bottom:1px solid var(--line); vertical-align:top; }
+  table.fields th { color:var(--muted); font-weight:600; }
+  details.out summary { cursor:pointer; font-weight:600; }
 </style>
 </head>
 <body>
@@ -163,6 +167,28 @@
     </section>
   </div>
 
+  <section class="step">
+    <div class="step-head"><span class="badge">?</span><h2>Reading the output</h2></div>
+    <p class="step-desc">Open a serial monitor at 115200 baud after flashing and resetting the board.</p>
+
+    <p style="margin:.2rem 0"><b>Receiver</b> — one CSV line per packet it hears:</p>
+    <p style="margin:.2rem 0"><code>50787D4CA1E8,-32.0,12.8,13</code></p>
+    <table class="fields">
+      <tr><th>Field</th><th>Meaning</th></tr>
+      <tr><td><code>chipId</code></td><td>Which beacon sent it: that beacon’s Wi-Fi MAC address, unique per beacon.</td></tr>
+      <tr><td><code>rssi_dBm</code></td><td>Received signal strength. Closer to 0 is stronger: about −30 is very close, about −120 is the limit. Noisy packet to packet, so average several readings before using it for distance.</td></tr>
+      <tr><td><code>snr_dB</code></td><td>How far the signal is above the noise. Positive is clearly above it; SF12 can still decode down to about −20.</td></tr>
+      <tr><td><code>txPower_dBm</code></td><td>The transmit power the beacon says it used (13), read from the packet itself.</td></tr>
+    </table>
+    <p class="meta">Lines starting with <code>#</code> are status: <code># listening, ok N rejected M</code> every 10 s
+      (<i>rejected</i> = packets that failed the CRC or weren’t from a beacon). The NeoPixel blinks blue per valid packet.</p>
+
+    <p style="margin:.9rem 0 .2rem"><b>Beacon</b> — transmits 2×/sec and prints a banner at boot
+      (<code>Beacon chipId … @ 868.0 MHz SF12 P13 dBm</code>), then <code>beat N</code> about once a second, where N
+      is the number of packets sent. A <code>txerr</code> after it means the radio reported a failed send.
+      The NeoPixel blinks green per transmit.</p>
+  </section>
+
   <h2 style="font-size:1rem;margin:24px 0 0">Log</h2>
   <pre id="log"></pre>
 
@@ -185,6 +211,6 @@
       });
     })();
   </script>
-  <script type="module" src="flasher.js?v=2"></script>
+  <script type="module" src="flasher.js?v=3"></script>
 </body>
 </html>
