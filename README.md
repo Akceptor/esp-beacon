@@ -1,6 +1,6 @@
 # esp-beacon
 
-Indoor-lab LoRa beacon for ESP32-C3 + LR1121. Every 500 ms (2 Hz) it transmits a
+Indoor-lab LoRa beacon for ESP32-C3 + LR1121. About every 500 ms (2 Hz average) it transmits a
 9-byte packet carrying its chip ID and TX power so a separate LoRa receiver can
 tell beacons apart and (later) triangulate them by RSSI.
 
@@ -18,9 +18,11 @@ receiver must match.
 
 ## Radio (LR1121)
 
-868.0 MHz · SF12 · 125 kHz · CR 4/5 · sync word 0x34 · preamble 8 · TX 13 dBm (HP PA) · CRC on · crystal (no TCXO).
+868.0 MHz · SF7 · 125 kHz · CR 4/5 · sync word 0x34 · preamble 8 · TX 13 dBm (HP PA) · CRC on · crystal (no TCXO).
 All values live in `include/board.h`, shared by the beacon and the receiver (kept in sync
 with `platformio.ini` and `docs/RECEIVER.md`).
+Flash the SF7 firmware to both the receiver and every beacon; an older SF12 device
+cannot communicate with an SF7 device.
 
 ## Pin map (ESP32-C3 GPIO)
 
@@ -84,7 +86,7 @@ packet (`chipId,rssi_dBm,snr_dB,txPower_dBm`), plus a `# listening` status every
 |-------|---------|
 | `chipId` | Beacon's Wi-Fi MAC, unique per beacon |
 | `rssi_dBm` | Received signal strength; closer to 0 is stronger (≈ −30 very close, ≈ −120 limit). Noisy: average several |
-| `snr_dB` | Signal above noise; SF12 decodes down to ≈ −20 |
+| `snr_dB` | Signal above noise; SF7 favors shorter airtime over maximum range |
 | `txPower_dBm` | Power the beacon says it used (13), read from the packet |
 
 ```
@@ -132,13 +134,14 @@ flashes this variant (select ESP8266 + SX1276), with the same manual bootloader 
 
 ## Power / battery
 
-The MCU idles (`delay`) in the 500 ms gaps; the LR1121 sits in standby between packets.
+The MCU idles (`delay`) between packets; the LR1121 sits in standby between packets.
+Each interval varies from 400 to 600 ms to prevent beacons from colliding repeatedly.
 This is deliberately simple — no fixed-duration light sleep, because deep sleep would
 re-init the radio and break the 500 ms cadence. For real battery life, gate the radio
 power and power it on only during transmit. That's a later optimization.
 
 ## Notes
 
-- **Indoor lab only.** At SF12 / 2 Hz the duty cycle is high — fine here, illegal for
+- **Indoor lab only.** At SF7 / 2 Hz average, the duty cycle is still above 1% — fine here, illegal for
   EU 868 MHz outdoor use.
 - Receiver is **not** included; `docs/RECEIVER.md` is the contract to build it against.

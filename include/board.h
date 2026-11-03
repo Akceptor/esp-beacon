@@ -12,7 +12,7 @@
 
 static constexpr float    BAND_FREQ_MHZ = 868.0f;
 static constexpr float    BW_KHZ        = 125.0f;
-static constexpr uint8_t  SF            = 12;       // spreading factor
+static constexpr uint8_t  SF            = 7;        // spreading factor
 static constexpr uint8_t  CR            = 5;        // CR denominator: 5=4/5, 6=4/6, 7=4/7, 8=4/8
 static constexpr uint8_t  SYNC_WORD     = 0x34;     // private, not LoRaWAN's 0x12
 static constexpr int8_t   TX_POWER_DBM  = 13;
