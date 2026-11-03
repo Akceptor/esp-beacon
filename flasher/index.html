@@ -200,14 +200,14 @@
       <tr><th>Field</th><th>Meaning</th></tr>
       <tr><td><code>chipId</code></td><td>Which beacon sent it: that beacon’s Wi-Fi MAC address, unique per beacon.</td></tr>
       <tr><td><code>rssi_dBm</code></td><td>Received signal strength. Closer to 0 is stronger: about −30 is very close, about −120 is the limit. Noisy packet to packet, so average several readings before using it for distance.</td></tr>
-      <tr><td><code>snr_dB</code></td><td>How far the signal is above the noise. Positive is clearly above it; SF12 can still decode down to about −20.</td></tr>
+      <tr><td><code>snr_dB</code></td><td>How far the signal is above the noise. Positive is clearly above it; SF7 favors shorter airtime over maximum range.</td></tr>
       <tr><td><code>txPower_dBm</code></td><td>The transmit power the beacon says it used (13), read from the packet itself.</td></tr>
     </table>
     <p class="meta">Lines starting with <code>#</code> are status: <code># listening, ok N rejected M</code> every 10 s
       (<i>rejected</i> = packets that failed the CRC or weren’t from a beacon). The NeoPixel blinks blue per valid packet.</p>
 
-    <p style="margin:.9rem 0 .2rem"><b>Beacon</b> — transmits 2×/sec and prints a banner at boot
-      (<code>Beacon chipId … @ 868.0 MHz SF12 P13 dBm</code>), then <code>beat N</code> about once a second, where N
+    <p style="margin:.9rem 0 .2rem"><b>Beacon</b> — transmits about 2×/sec and prints a banner at boot
+      (<code>Beacon chipId … @ 868.0 MHz SF7 P13 dBm</code>), then <code>beat N</code> about once a second, where N
       is the number of packets sent. A <code>txerr</code> after it means the radio reported a failed send.
       The NeoPixel blinks green per transmit.</p>
   </section>

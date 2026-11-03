@@ -1,5 +1,5 @@
 // ESP32-C3 + LR1121 (or ESP8266 + SX1276) beacon — indoor lab use.
-// Every 500 ms it transmits a 9-byte packet carrying its chip ID (the ESP32's
+// About every 500 ms it transmits a 9-byte packet carrying its chip ID (the ESP32's
 // Wi-Fi base MAC) and its TX power, so a remote receiver can distinguish beacons and
 // later estimate distance. See docs/RECEIVER.md.
 #include <Arduino.h>
@@ -8,6 +8,7 @@
 #include "board.h"
 
 static constexpr uint16_t PERIOD_MS = 500;   // 2 Hz
+static constexpr int16_t  JITTER_MS = 100;   // vary slots so beacons do not collide repeatedly
 
 RadioChip radio = newRadioModule();
 
@@ -39,6 +40,9 @@ void setup() {
 
   spiBegin();
   readChipId(chipId);
+  uint32_t seed = micros();
+  for (uint8_t b : chipId) seed = seed * 33 + b;
+  randomSeed(seed);
 
   // Boot banner: chip id + key radio params.
   Serial.print(F("Beacon chipId "));
@@ -52,7 +56,7 @@ void setup() {
   Serial.println(F(" dBm, 2 Hz"));
 
   initRadio();
-  nextTx = millis();
+  nextTx = millis() + random(0, JITTER_MS + 1);
 }
 
 void loop() {
@@ -65,15 +69,15 @@ void loop() {
   }
 
   uint32_t now = millis();
-  if (now < nextTx) {
-    // Idle until the next 500 ms slot. The LR1121 sits in standby between packets; the MCU
+  if ((int32_t)(now - nextTx) < 0) {
+    // Idle until the next transmit slot. The LR1121 sits in standby between packets; the MCU
     // would save more by light-sleeping, but a deep sleep re-inits the radio and breaks the
-    // 500 ms cadence. Real battery savings come from gating the radio power, a later step.
-    delay(PERIOD_MS - (nextTx - now));
+    // average 500 ms cadence. Real battery savings come from gating the radio power, a later step.
+    delay(nextTx - now);
     return;
   }
-  // Anchor to the schedule so sleep+tx time doesn't drift the 2 Hz cadence.
-  nextTx = now + PERIOD_MS;
+  // Vary each interval to break persistent collisions with other beacons.
+  nextTx = now + PERIOD_MS + random(-JITTER_MS, JITTER_MS + 1);
 
   uint8_t pkt[PKT_LEN];
   pkt[0] = MAGIC[0];

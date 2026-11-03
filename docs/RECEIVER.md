@@ -9,7 +9,7 @@ match every parameter below or it will never hear the beacons.
 | Param | Value |
 |-------|-------|
 | Frequency | 868.0 MHz |
-| Spreading factor | 12 |
+| Spreading factor | 7 |
 | Bandwidth | 125 kHz |
 | Coding rate | 4/5 |
 | Sync word | 0x34 (private — NOT LoRaWAN's 0x12) |
@@ -18,7 +18,7 @@ match every parameter below or it will never hear the beacons.
 | Beacon TX power | 13 dBm |
 
 Same chip family on the receiver side: `new Module(CS, DIO9, RST, BUSY)` as an `LR1121`,
-then `radio.begin(868.0, 125.0, 12, 5, 0x34, <power>, 8, <tcxo V>)` before
+then `radio.begin(868.0, 125.0, 7, 5, 0x34, <power>, 8, <tcxo V>)` before
 `radio.startReceive()`. The TCXO voltage and RF switch table (DIO5/DIO6) depend on the
 receiver's board. Use the same values as the beacon's `src/main.cpp`.
 
@@ -51,7 +51,7 @@ On a valid frame, store:
 - `txPower` — the byte at offset 8 (should be 13); keep it per-record so it survives
   future changes to beacon power.
 
-Dedup: beacons send 2×/sec, so the same chip id repeats. Key the log by
+Dedup: beacons send about 2×/sec, so the same chip id repeats. Key the log by
 `(chipId, timestamp)` and drop near-duplicate timestamps if you want one reading per
 beacon per second rather than two.
 
@@ -88,9 +88,10 @@ position of the beacon. Practically:
 
 ## Notes / caveats
 
-- **Duty cycle (informational).** At SF12, 2 Hz, the beacon's air time is tens of
-  ms per 500 ms — a high duty cycle. Fine for this indoor lab; **illegal for EU 868
-  MHz outdoor use** (1% duty limit). For real deployment drop SF or move bands.
+- **Duty cycle (informational).** At SF7, a 9-byte packet takes about 41 ms on air.
+  At about 2 Hz the duty cycle still exceeds 1%. Fine for this indoor lab;
+  **illegal for EU 868 MHz outdoor use** (1% duty limit). For real deployment
+  reduce the transmit rate or use an appropriate band.
 - **Sync word 0x34** keeps beacons off LoRaWAN traffic and lets you share the band
   with other private 0x34 systems.
 - **Receiver clock**: keep it accurate (NTP) if you want to fuse RSSI from multiple
